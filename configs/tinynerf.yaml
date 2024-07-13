@@ -1,0 +1,67 @@
+name: nerf
+save_dir: runs
+trial_dir: ${get_trial_dir:${save_dir}}
+save_cfg_path: ${path_append:${trial_dir},config.yaml}
+seed: 0
+
+data:
+  data_source: data/src
+  train_path: ${path_append:${data.data_source},training_data.pkl}
+  valid_path: ${path_append:${data.data_source},testing_data.pkl}
+  batch_size: 1024
+  shuffle: True
+
+system_type: TinyNerf
+system:
+  model_type: NerfModel
+  model:
+    hidden_dim: 256
+    embedding_dim_pos: 10
+    embedding_dim_direction: 4
+  optimizer:
+    name: Adam
+    args:
+      lr: 5.e-4
+  scheduler:
+    name: MultiStepLR
+    args:
+      milestones: [2, 4, 8]
+      gamma: 0.5
+      last_epoch: -1
+  loss: 
+    name: mse
+    args:
+      reduction: sum
+  args:
+    near: 2
+    far: 6
+    bins_count: 192
+    eval_height: 400
+    eval_width: 400
+
+train:
+  trainer:
+    devices: [0]
+    max_epochs: 1
+    check_val_every_n_epoch: 1
+    enable_progress_bar: True
+    accumulate_grad_batches: 1
+    default_root_dir: ${trial_dir}
+  logger:
+    names: [WandbLogger, CSVLogger]
+    args:
+      wandb:
+        name: ${get_run_id:${trial_dir}}
+        project: nerf
+        save_dir: ${path_append:${trial_dir},wandb}
+        id: ${get_run_id:${trial_dir}}
+        anonymous: True
+      csv:
+        name: csv
+        save_dir: ${trial_dir}
+  callback:
+    names: [ModelCheckpoint]
+    args:
+      modelcp:
+        monitor: train/psnr
+        mode: max
