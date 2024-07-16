@@ -14,6 +14,7 @@ class TrainerConfig:
     check_val_every_n_epoch:int = 1
     enable_progress_bar:bool = True
     accumulate_grad_batches:int = 1
+    log_every_n_steps:int = 50
     default_root_dir:str = None
 
     def dict(self):

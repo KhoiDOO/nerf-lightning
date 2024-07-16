@@ -10,6 +10,7 @@ def time_string():
 OmegaConf.register_new_resolver("path_append", lambda a, b: os.path.join(a, b))
 OmegaConf.register_new_resolver("get_trial_dir", lambda save_dir: os.path.join(os.getcwd(), save_dir, time_string()))
 OmegaConf.register_new_resolver("get_run_id", lambda save_dir: save_dir.split('/')[-1])
+OmegaConf.register_new_resolver("get_shuffle", lambda lst: True if len(lst) == 1 else False)
 
 @dataclass
 class ExpCfg:

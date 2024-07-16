@@ -18,6 +18,8 @@ class LossConfig:
     args:Dict = field(default_factory=dict)
 
 def psnr(loss: torch.Tensor) -> float:
+    if loss == 0.0:
+        return -10.0 * torch.log10(torch.tensor(1e-06)).mean(dim=-1).item()
     return -10.0 * torch.log10(loss).mean(dim=-1).item()
 
 def parse_loss(cfg: Dict)->nn.Module:

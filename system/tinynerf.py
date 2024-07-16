@@ -1,15 +1,17 @@
-from .utils import compute_accumulated_transmittance, psnr
+from .utils import compute_accumulated_transmittance, psnr, savenormimg
 from typing import Any, Dict, Mapping
 from .base import BaseSystem
 from torch import Tensor
 
+import os
 import torch
+import numpy as np
 
 class TinyNerf(BaseSystem):
     def __init__(self, cfg: Dict, *args: Any, **kwargs: Any) -> BaseSystem:
         super().__init__(cfg, *args, **kwargs)
     
-    def forward(self, ray_origins, ray_directions, near, far, bins_count, *args: Any, **kwargs: Any) -> Any:
+    def forward(self, ray_origins, ray_directions, near, far, bins_count, *args: Any, **kwargs: Any) -> Tensor:
         device = ray_origins.device
     
         t = torch.linspace(near, far, bins_count, device=device).expand(ray_origins.shape[0], bins_count)
@@ -62,3 +64,39 @@ class TinyNerf(BaseSystem):
 
         self.log("valid/loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("valid/psnr", snr, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+    
+    # def test_step(self, batch, batch_idx):
+    #     ray_origins = batch[:, :3]
+    #     ray_directions = batch[:, 3:6]
+
+    #     preds:Tensor = self(ray_origins, ray_directions, **self.args)
+
+    #     self.pxs.append(preds[0].cpu())
+
+    #     if (batch_idx + 1) % self.px_cnt == 0:
+    #         index = batch_idx // self.px_cnt
+    #         img = torch.cat(self.pxs).numpy().reshape(self.H, self.W, 3)
+    #         savenormimg(filename=os.path.join(self.render_dir, f'{index}.png'), img=img)
+    #         self.pxs = []
+
+    def test_step(self, batch: Tensor):
+        
+        B = batch.size(dim=0)
+        self.accumulated_batch_size += B
+        
+        ray_origins = batch[:, :3]
+        ray_directions = batch[:, 3:6]
+
+        preds:Tensor = self(ray_origins, ray_directions, **self.args)
+
+        self.generated_pixels.append(preds.cpu())
+
+        if self.accumulated_batch_size >= self.image_pixel_total:
+            cat_pred = torch.cat(self.generated_pixels, dim=0)
+            img = cat_pred[:self.image_pixel_total, :].numpy().reshape(self.H, self.W, 3)
+
+            self.accumulated_batch_size -= self.image_pixel_total
+            self.generated_pixels = [cat_pred[self.image_pixel_total:, :]] if self.accumulated_batch_size > 0 else []
+
+            savenormimg(filename=os.path.join(self.render_dir, f'{self.inference_index}.png'), img=img)
+            self.inference_index += 1

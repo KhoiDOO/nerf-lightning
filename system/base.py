@@ -28,9 +28,19 @@ class BaseSystem(pl.LightningModule):
         self.model: nn.Module = getattr(model, self.cfg.model_type)(**self.cfg.model)
         self.criterion = parse_loss(self.cfg.loss)
         self.args = self.cfg.args
+        self.H = self.args.eval_height
+        self.W = self.args.eval_width
+        self.image_pixel_total = self.H * self.W
+        self.generated_pixels = []
+        self.accumulated_batch_size = 0
+        self.inference_index = 0
+
+        self.save_hyperparameters()
     
     def set_save_dir(self, path:str):
-        self.save_dir = path
+        self.trial_dir = path
+        self.render_dir = os.path.join(self.trial_dir, 'render')
+        os.makedirs(self.render_dir)
     
     def configure_optimizers(self):
         if self.model is None:
@@ -38,9 +48,7 @@ class BaseSystem(pl.LightningModule):
         optimizer = parse_optimizer(self.cfg.optimizer, self.model)
         return {
             "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": parse_scheduler(self.cfg.scheduler, optimizer)
-            }
+            "lr_scheduler": {"scheduler": parse_scheduler(self.cfg.scheduler, optimizer)}
         }
 
     def on_fit_start(self) -> None:
@@ -49,5 +57,6 @@ class BaseSystem(pl.LightningModule):
     
     def on_fit_end(self) -> None:
         super().on_fit_end()
-        with open(os.path.join(self.save_dir, 'done.txt'), 'w') as file:
+        print('[INFO]: Experiment Ended')
+        with open(os.path.join(self.trial_dir, 'done.txt'), 'w') as file:
             file.close()

@@ -10,6 +10,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', type=str, required=True, help='YAML Config file path')
+    parser.add_argument('--mode', type=str, required=True, help='mode in experiment')
 
     args = parser.parse_args()
 
@@ -25,4 +26,8 @@ if __name__ == '__main__':
     trainer_cfg, logger_lst, callback_lst = traincfg_resolve(cfg=cfg.train)
     trainer = Trainer(**trainer_cfg, logger=logger_lst, callbacks=callback_lst)
 
-    trainer.fit(model=system, datamodule=dm)
+    if args.mode == 'train':
+        trainer.fit(model=system, datamodule=dm)
+        trainer.test(model=system, datamodule=dm)
+    else:
+        raise ValueError(f'Mode {args.mode} is currently not supported')

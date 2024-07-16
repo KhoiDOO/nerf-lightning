@@ -18,6 +18,7 @@ class DatasetConfig:
     valid_path:str = None
     batch_size:int = 32
     shuffle:bool = True
+    num_workers:int = 24
     # near:int = 2
     # far:int = 6
     # nb_bins:int = 192
@@ -107,16 +108,13 @@ class RandomCameraModule(pl.LightningDataModule):
             self.test_dataset = torch.from_numpy(np.load(self.valid_path, allow_pickle=True))
 
     def general_loader(self, dataset, batch_size) -> DataLoader:
-        return DataLoader(dataset, num_workers=0, batch_size=batch_size, shuffle=self.cfg.shuffle)
+        return DataLoader(dataset, num_workers=self.cfg.num_workers, batch_size=batch_size)
 
     def train_dataloader(self) -> DataLoader:
-        return self.general_loader(self.train_dataset, batch_size=self.cfg.batch_size)
+        return DataLoader(self.train_dataset, num_workers=self.cfg.num_workers, batch_size=self.cfg.batch_size, shuffle=self.cfg.shuffle)
 
     def val_dataloader(self) -> DataLoader:
-        return self.general_loader(self.val_dataset, batch_size=self.cfg.batch_size)
+        return DataLoader(self.val_dataset, num_workers=self.cfg.num_workers, batch_size=self.cfg.batch_size)
 
     def test_dataloader(self) -> DataLoader:
-        return self.general_loader(self.test_dataset, batch_size=self.cfg.batch_size)
-
-    def predict_dataloader(self) -> DataLoader:
-        return self.general_loader(self.test_dataset, batch_size=self.cfg.batch_size)
+        return DataLoader(self.test_dataset, num_workers=self.cfg.num_workers, batch_size=self.cfg.batch_size)
