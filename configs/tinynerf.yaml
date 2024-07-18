@@ -32,7 +32,7 @@ system:
   loss: 
     name: mse
     args:
-      reduction: sum
+      reduction: mean
   args:
     near: 2
     far: 6

@@ -2,11 +2,9 @@ from dataclasses import dataclass, field
 from typing import *
 from .utils import parse_optimizer, parse_scheduler, parse_loss
 from utils import parse_structure
-from torch import nn
 
 import pytorch_lightning as pl
 import torch
-import model
 import os
 
 
@@ -25,17 +23,7 @@ class BaseSystem(pl.LightningModule):
         super().__init__(*args, **kwargs)
 
         self.cfg:SystemConfig = parse_structure(SystemConfig, cfg)
-        self.model: nn.Module = getattr(model, self.cfg.model_type)(**self.cfg.model)
         self.criterion = parse_loss(self.cfg.loss)
-        self.args = self.cfg.args
-        self.H = self.args.eval_height
-        self.W = self.args.eval_width
-        self.image_pixel_total = self.H * self.W
-        self.generated_pixels = []
-        self.accumulated_batch_size = 0
-        self.inference_index = 0
-
-        self.save_hyperparameters()
     
     def set_save_dir(self, path:str):
         self.trial_dir = path

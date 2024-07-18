@@ -1,15 +1,39 @@
 from .utils import compute_accumulated_transmittance, psnr, savenormimg
+from dataclasses import dataclass, field
+from utils import parse_structure
 from typing import Any, Dict, Mapping
 from .base import BaseSystem
-from torch import Tensor
+from torch import nn, Tensor
 
 import os
 import torch
 import numpy as np
+import model
+
+
+@dataclass
+class TinyNerfArgs:
+    near:int = 2
+    far:int = 6
+    bins_count:int =  192
+    eval_height:int = 400
+    eval_width:int = 400
+
 
 class TinyNerf(BaseSystem):
     def __init__(self, cfg: Dict, *args: Any, **kwargs: Any) -> BaseSystem:
         super().__init__(cfg, *args, **kwargs)
+
+        self.model: nn.Module = getattr(model, self.cfg.model_type)(**self.cfg.model)
+        self.args:TinyNerfArgs = parse_structure(TinyNerfArgs, self.cfg.args)
+        self.H = self.args.eval_height
+        self.W = self.args.eval_width
+        self.image_pixel_total = self.H * self.W
+        self.generated_pixels = []
+        self.accumulated_batch_size = 0
+        self.inference_index = 0
+
+        self.save_hyperparameters() 
     
     def forward(self, ray_origins, ray_directions, near, far, bins_count, *args: Any, **kwargs: Any) -> Tensor:
         device = ray_origins.device
@@ -64,20 +88,6 @@ class TinyNerf(BaseSystem):
 
         self.log("valid/loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("valid/psnr", snr, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-    
-    # def test_step(self, batch, batch_idx):
-    #     ray_origins = batch[:, :3]
-    #     ray_directions = batch[:, 3:6]
-
-    #     preds:Tensor = self(ray_origins, ray_directions, **self.args)
-
-    #     self.pxs.append(preds[0].cpu())
-
-    #     if (batch_idx + 1) % self.px_cnt == 0:
-    #         index = batch_idx // self.px_cnt
-    #         img = torch.cat(self.pxs).numpy().reshape(self.H, self.W, 3)
-    #         savenormimg(filename=os.path.join(self.render_dir, f'{index}.png'), img=img)
-    #         self.pxs = []
 
     def test_step(self, batch: Tensor):
         
