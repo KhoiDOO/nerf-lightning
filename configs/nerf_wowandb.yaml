@@ -12,7 +12,7 @@ data:
   shuffle: ${get_shuffle:${train.trainer.devices}}
   num_workers: 24
 
-system_type: TinyNerf
+system_type: Nerf
 system:
   model_type: NerfModel
   model:
@@ -36,7 +36,8 @@ system:
   args:
     near: 2
     far: 6
-    bins_count: 192
+    corase_bins_count: 64
+    fine_bins_count: 128
     eval_height: 400
     eval_width: 400
 

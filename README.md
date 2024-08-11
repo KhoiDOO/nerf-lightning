@@ -10,6 +10,7 @@ pip install wheel
 pip3 install torch torchvision torchaudio
 python -m pip install lightning
 pip install omegaconf
+pip install opencv-python
 ```
 
 ## Training
@@ -26,7 +27,8 @@ data:
   train_path: ${path_append:${data.data_source},training_data.pkl}
   valid_path: ${path_append:${data.data_source},testing_data.pkl}
   batch_size: 1024
-  shuffle: True
+  shuffle: ${get_shuffle:${train.trainer.devices}}
+  num_workers: 24
 
 system_type: TinyNerf
 system:
@@ -48,7 +50,7 @@ system:
   loss: 
     name: mse
     args:
-      reduction: sum
+      reduction: mean
   args:
     near: 2
     far: 6
@@ -59,10 +61,11 @@ system:
 train:
   trainer:
     devices: [0]
-    max_epochs: 1
+    max_epochs: 20
     check_val_every_n_epoch: 1
     enable_progress_bar: True
     accumulate_grad_batches: 1
+    log_every_n_steps: 50
     default_root_dir: ${trial_dir}
   logger:
     names: [WandbLogger, CSVLogger]
@@ -73,6 +76,7 @@ train:
         save_dir: ${path_append:${trial_dir},wandb}
         id: ${get_run_id:${trial_dir}}
         anonymous: True
+        log_model: all
       csv:
         name: csv
         save_dir: ${trial_dir}
