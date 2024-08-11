@@ -1,4 +1,5 @@
 # NerfLightning - Simple NERF Archive
+Project Website: https://khoidoo.github.io/nerf-lightning/
 
 ## Setup
 ```
